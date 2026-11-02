@@ -33,8 +33,10 @@ Not one issue. Three problems, each filed as its own ticket below. Do not close 
   }}
 />
 
-Every count is computed from `reports-4471.json` when the page renders, once per report id. The
-export repeats some reports across its pages.
+The counts are the desk's own, the same view as the table on [#4471](/kb/incidents/4471), computed
+from `reports-4471.json` as exported, once per report id. The export repeats some reports across its
+pages. A report the desk read as a one-day move stays counted under its tenant's cause and also
+gets its own row and ticket.
 
 ## The three problems
 
@@ -55,13 +57,15 @@ Toronto got Monday." That is time-zone handling, not date order. The desk alread
 reports as one-day moves (`desk-notes.json`), but `causeOf` sorts by tenant and channel only, so
 the table on #4471 counts them under `parser`.
 
-## How a report is placed
+## How a report is counted
 
-`problemOf` in `#lib/kb/split.ts`, in this order:
+With the desk's own functions in `#lib/kb/causes.ts`, nothing new:
 
-1. The desk read it as a one-day move: `day-shift`.
-2. Otherwise the cause from `causes.ts`: `hint` when it came through a form that prints a
-   month-first hint at a day-first tenant, else `parser`.
+1. `uniqueById`, then only the reports merged into #4471.
+2. `groupByCause`: `hint` when the report came through a form that prints a month-first hint at
+   a day-first tenant, else `parser`.
+3. `readAs` with the desk's `oneDayMove` list: the `day-shift` row, inside the cause it is
+   filed under.
 
 Intake's tag (`meta.intakeTag`) is not used. It is a guess from the reporter's browser: every
 report from an `en-US` browser is tagged `hint`, and every other report is tagged `parser`,
