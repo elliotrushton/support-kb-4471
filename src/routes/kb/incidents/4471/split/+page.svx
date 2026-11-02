@@ -1,0 +1,77 @@
+---
+layout: runbook
+title: '#4471 · what it shows: three problems, not one'
+owner: Elliot Rushton
+status: open
+reviewed: 2026-11-02
+signature: Elliot Rushton
+---
+
+<script>
+  import SplitTable from '#lib/kb/SplitTable.svelte';
+  import Callout from '#lib/kb/Callout.svelte';
+  import RenderStamp from '#lib/kb/RenderStamp.svelte';
+</script>
+
+[#4471](/kb/incidents/4471) is marked known: one issue, one fix queued. It is not one issue. The
+reports were merged because their subject lines match ([decision 0001](/kb/decisions/0001-dedupe-by-subject)),
+and nobody had to read the bodies. Read them, and they describe three problems. The parser fix
+that is queued closes only the first.
+
+<Callout kind="warn">
+Not one issue. Three problems, each filed as its own ticket below. Do not close #4471 when the parser fix ships.
+</Callout>
+
+## What #4471 holds
+
+<SplitTable
+  ticket={4471}
+  tickets={{
+    parser: 'https://github.com/elliotrushton/support-kb-4471/issues/1',
+    hint: 'https://github.com/elliotrushton/support-kb-4471/issues/2',
+    'day-shift': 'https://github.com/elliotrushton/support-kb-4471/issues/3',
+  }}
+/>
+
+Every count is computed from `reports-4471.json` when the page renders, once per report id. The
+export repeats some reports across its pages.
+
+## The three problems
+
+**`parser`: the shared parser reads dates month first.** Every tenant in #4471 writes the day
+first. Any date whose day is 12 or lower comes out with day and month swapped: "Our 7 April
+reminder went out on 4 July." It happens through the app, email and the `booking-v2` form. The
+date the person meant reaches the parser, and the parser flips it. This is the fix that is queued.
+
+**`hint`: the `booking-v3` form tells people to type the month first.** Its date field says
+`MM/DD/YYYY`, so people type the month first. The form reads the tenant's way, day first. The date
+is wrong before it reaches the parser, so the parser fix does not touch it. This covers only
+reports sent through the form at tenants on `booking-v3`. The same tenants' app and email
+reports are `parser`.
+
+**`day-shift`: dates move by one day.** The month stays right. The day moves by one, or one
+meeting lands on different days in different time zones: "Client in Lisbon got Tuesday. Client in
+Toronto got Monday." That is time-zone handling, not date order. The desk already read these
+reports as one-day moves (`desk-notes.json`), but `causeOf` sorts by tenant and channel only, so
+the table on #4471 counts them under `parser`.
+
+## How a report is placed
+
+`problemOf` in `#lib/kb/split.ts`, in this order:
+
+1. The desk read it as a one-day move: `day-shift`.
+2. Otherwise the cause from `causes.ts`: `hint` when it came through a form that prints a
+   month-first hint at a day-first tenant, else `parser`.
+
+Intake's tag (`meta.intakeTag`) is not used. It is a guess from the reporter's browser: every
+report from an `en-US` browser is tagged `hint`, and every other report is tagged `parser`,
+whatever form the tenant runs and whichever way the report came in.
+
+## Lessons
+
+- A subject line says how the report felt to the person who wrote it, not what caused it. Three
+  bugs can share one subject.
+- Before you mark a big ticket known, read a sample of bodies from each tenant and channel.
+- When the desk notes that some reports read differently, that is a new ticket, not a footnote.
+
+<RenderStamp {signature} />
